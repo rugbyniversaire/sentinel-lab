@@ -1,3 +1,5 @@
+import re
+
 def parser_date_iso(chaine):
     """Parse une date ISO 8601 de façon tolérante (gère les fractions de secondes non standard)."""
     if not chaine:
