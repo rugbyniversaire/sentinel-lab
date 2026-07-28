@@ -13,7 +13,7 @@ YOUTUBE_API_KEY = st.secrets.get("YOUTUBE_API_KEY", "")
 
 if "mots_cles" not in st.session_state:
     st.session_state.mots_cles = []
-
+from core.constants import LIMITE_HEURES, SEUIL_SIMILARITE, MOTS_VIDES
 
 # ------------------- GESTION DES MOTS-CLES -------------------
 st.subheader("Tes mots-clés suivis")
