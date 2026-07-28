@@ -66,34 +66,6 @@ from core.filters import (
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # ------------------- LANCEMENT -------------------
 if lancer:
     if not YOUTUBE_API_KEY:
