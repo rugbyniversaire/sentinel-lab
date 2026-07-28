@@ -121,7 +121,7 @@ def est_recent(date_publication, seuil):
     return date_publication >= seuil
 
 
-
+from core.utils import parser_date_iso, extraire_image_html
 
 
 def est_pertinent(mot_cle, texte):
