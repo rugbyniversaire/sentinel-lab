@@ -4,6 +4,7 @@ import feedparser
 import re
 from datetime import datetime, timezone, timedelta
 from urllib.parse import quote
+from core.search_engine import rechercher_tout
 
 st.set_page_config(page_title="Veille mot-clé", page_icon="🔍")
 st.title("🔍 Outil de veille")
