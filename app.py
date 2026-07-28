@@ -148,11 +148,7 @@ def dedupliquer(resultats):
     return uniques
 
 
-def extraire_image_html(html):
-    if not html:
-        return None
-    match = re.search(r'<img[^>]+src="([^"]+)"', html)
-    return match.group(1) if match else None
+
 
 
 def chercher_google_news(mot_cle, seuil):
