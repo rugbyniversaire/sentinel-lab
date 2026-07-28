@@ -115,13 +115,13 @@ def synthetiser_titre(elements):
 
 
 # ------------------- FONCTIONS DE RECHERCHE -------------------
-def est_recent(date_publication, seuil):
-    if date_publication is None:
-        return False
-    return date_publication >= seuil
-
 
 from core.utils import parser_date_iso, extraire_image_html
+from core.filters import (
+    est_recent,
+    est_pertinent,
+    dedupliquer
+)
 
 
 def est_pertinent(mot_cle, texte):
