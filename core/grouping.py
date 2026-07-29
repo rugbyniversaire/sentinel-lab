@@ -1,3 +1,7 @@
+import re
+
+from core.constants import MOTS_VIDES, SEUIL_SIMILARITE
+
 def normaliser_titre(titre):
     mots = re.findall(r"[a-zàâäéèêëïîôöùûüç0-9]+", titre.lower())
     return {m for m in mots if m not in MOTS_VIDES and len(m) > 2}
