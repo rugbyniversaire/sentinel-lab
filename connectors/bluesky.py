@@ -5,19 +5,30 @@ from core.utils import parser_date_iso
 
 
 def chercher_bluesky(mot_cle, seuil):
-    url = "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts"
+
+    url = (
+        "https://public.api.bsky.app/xrpc/"
+        "app.bsky.feed.searchPosts"
+    )
 
     params = {
+
         "q": mot_cle,
+
         "sort": "latest",
-        "limit": 25,
+
+        "limit": 25
+
     }
 
     headers = {
-        "User-Agent": "veille-outil/1.0"
+
+        "User-Agent": "sentinel-lab"
+
     }
 
     try:
+
         reponse = requests.get(
             url,
             params=params,
@@ -31,6 +42,7 @@ def chercher_bluesky(mot_cle, seuil):
         data = reponse.json()
 
     except Exception:
+
         return []
 
     resultats = []
@@ -41,7 +53,9 @@ def chercher_bluesky(mot_cle, seuil):
 
             record = post.get("record", {})
 
-            date_pub = parser_date_iso(record.get("createdAt"))
+            date_pub = parser_date_iso(
+                record.get("createdAt")
+            )
 
             if not est_recent(date_pub, seuil):
                 continue
@@ -52,19 +66,11 @@ def chercher_bluesky(mot_cle, seuil):
 
             uri = post.get("uri", "")
 
-            rkey = uri.split("/")[-1] if uri else ""
-
-            lien = (
-                f"https://bsky.app/profile/{handle}/post/{rkey}"
-                if handle and rkey
-                else ""
-            )
-
-            texte = record.get("text", "")[:120]
-
-            embed = post.get("embed", {})
+            rkey = uri.split("/")[-1]
 
             image = None
+
+            embed = post.get("embed", {})
 
             if embed.get("images"):
                 image = embed["images"][0].get("thumb")
@@ -73,11 +79,22 @@ def chercher_bluesky(mot_cle, seuil):
                 image = embed["external"]["thumb"]
 
             resultats.append({
-                "source": f"Bluesky - @{handle}",
-                "titre": texte,
-                "lien": lien,
+
+                "source": "Bluesky - @" + handle,
+
+                "titre": record.get(
+                    "text",
+                    ""
+                )[:120],
+
+                "lien": (
+                    f"https://bsky.app/profile/{handle}/post/{rkey}"
+                ),
+
                 "date_pub": date_pub,
+
                 "image": image
+
             })
 
         except Exception:
