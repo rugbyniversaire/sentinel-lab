@@ -1,69 +1,167 @@
 import re
 
-from core.constants import MOTS_VIDES, SEUIL_SIMILARITE
+from core.constants import (
+    MOTS_VIDES,
+    SEUIL_SIMILARITE
+)
+
 
 def normaliser_titre(titre):
-    mots = re.findall(r"[a-zàâäéèêëïîôöùûüç0-9]+", titre.lower())
-    return {m for m in mots if m not in MOTS_VIDES and len(m) > 2}
+
+    mots = re.findall(
+        r"[a-zàâäéèêëïîôöùûüç0-9]+",
+        titre.lower()
+    )
+
+    return {
+        m
+        for m in mots
+        if m not in MOTS_VIDES and len(m) > 2
+    }
 
 
 def similarite(mots_a, mots_b):
+
     if not mots_a or not mots_b:
         return 0
+
     intersection = len(mots_a & mots_b)
+
     union = len(mots_a | mots_b)
+
     jaccard = intersection / union if union else 0
-    chevauchement = intersection / min(len(mots_a), len(mots_b))
-    return max(jaccard, chevauchement)
+
+    chevauchement = (
+        intersection /
+        min(len(mots_a), len(mots_b))
+    )
+
+    return max(
+        jaccard,
+        chevauchement
+    )
 
 
 def regrouper_resultats(resultats):
+
     groupes = []
-    for r in resultats:
-        mots_titre = normaliser_titre(r["titre"])
-        meilleur_groupe = None
+
+    for resultat in resultats:
+
+        mots = normaliser_titre(
+            resultat["titre"]
+        )
+
+        meilleur = None
+
         meilleur_score = 0
+
         for groupe in groupes:
-            score = similarite(mots_titre, groupe["mots"])
-            if score > SEUIL_SIMILARITE and score > meilleur_score:
-                meilleur_groupe = groupe
+
+            score = similarite(
+                mots,
+                groupe["mots"]
+            )
+
+            if (
+                score > SEUIL_SIMILARITE
+                and score > meilleur_score
+            ):
+
+                meilleur = groupe
                 meilleur_score = score
-        if meilleur_groupe:
-            meilleur_groupe["elements"].append(r)
-            meilleur_groupe["mots"] |= mots_titre
+
+        if meilleur:
+
+            meilleur["elements"].append(resultat)
+
+            meilleur["mots"] |= mots
+
         else:
-            groupes.append({"mots": mots_titre, "elements": [r]})
+
+            groupes.append({
+
+                "mots": mots,
+
+                "elements": [resultat]
+
+            })
+
     return groupes
 
 
 def synthetiser_titre(elements):
+
     if len(elements) == 1:
         return elements[0]["titre"]
 
     compte = {}
-    casse_originale = {}
-    ordre_apparition = []
 
-    for e in elements:
-        mots_bruts = re.findall(r"[A-Za-zÀ-ÿ0-9]+", e["titre"])
-        vus_dans_ce_titre = set()
-        for m in mots_bruts:
-            m_norm = m.lower()
-            if m_norm in MOTS_VIDES or len(m_norm) <= 2:
+    casse = {}
+
+    ordre = []
+
+    for element in elements:
+
+        mots = re.findall(
+            r"[A-Za-zÀ-ÿ0-9]+",
+            element["titre"]
+        )
+
+        vus = set()
+
+        for mot in mots:
+
+            normalise = mot.lower()
+
+            if (
+                normalise in MOTS_VIDES
+                or len(normalise) <= 2
+            ):
                 continue
-            if m_norm not in vus_dans_ce_titre:
-                compte[m_norm] = compte.get(m_norm, 0) + 1
-                vus_dans_ce_titre.add(m_norm)
-            if m_norm not in casse_originale:
-                casse_originale[m_norm] = m
-                ordre_apparition.append(m_norm)
 
-    seuil_frequence = max(2, (len(elements) + 1) // 2)
-    mots_choisis = [m for m in ordre_apparition if compte.get(m, 0) >= seuil_frequence]
+            if normalise not in vus:
 
-    if not mots_choisis:
-        mots_choisis = sorted(ordre_apparition, key=lambda m: -compte.get(m, 0))[:6]
+                compte[normalise] = (
+                    compte.get(normalise, 0)
+                    + 1
+                )
 
-    mots_choisis = mots_choisis[:6]
-    titre = " ".join(casse_originale[m] for m in mots_choisis)
-    return titre if titre else elements[0]["titre"]
+                vus.add(normalise)
+
+            if normalise not in casse:
+
+                casse[normalise] = mot
+
+                ordre.append(normalise)
+
+    seuil = max(
+        2,
+        (len(elements) + 1) // 2
+    )
+
+    mots = [
+
+        m
+
+        for m in ordre
+
+        if compte.get(m, 0) >= seuil
+
+    ]
+
+    if not mots:
+
+        mots = sorted(
+            ordre,
+            key=lambda x: -compte.get(x, 0)
+        )[:6]
+
+    mots = mots[:6]
+
+    titre = " ".join(
+        casse[m]
+        for m in mots
+    )
+
+    return titre or elements[0]["titre"]
