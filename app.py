@@ -1,6 +1,9 @@
 import streamlit as st
 
-from core.search_engine import rechercher_tout
+from core.search_engine import (
+    rechercher_tout,
+    rechercher_plusieurs_mots
+)
 from ui.display import afficher_resultats
 
 
