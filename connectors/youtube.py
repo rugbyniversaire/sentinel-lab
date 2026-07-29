@@ -1,3 +1,11 @@
+import requests
+import streamlit as st
+
+from core.filters import est_recent, est_pertinent
+from core.utils import parser_date_iso
+
+YOUTUBE_API_KEY = st.secrets.get("YOUTUBE_API_KEY", "")
+
 def chercher_youtube(mot_cle, seuil):
     if not YOUTUBE_API_KEY:
         return []
