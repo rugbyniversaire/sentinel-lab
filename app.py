@@ -10,8 +10,6 @@ st.set_page_config(page_title="Veille mot-clé", page_icon="🔍")
 st.title("🔍 Outil de veille")
 st.caption("Résultats publiés dans les dernières 24h, toutes sources confondues")
 
-YOUTUBE_API_KEY = st.secrets.get("YOUTUBE_API_KEY", "")
-
 if "mots_cles" not in st.session_state:
     st.session_state.mots_cles = []
 from core.constants import LIMITE_HEURES, SEUIL_SIMILARITE, MOTS_VIDES
