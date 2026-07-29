@@ -8,7 +8,11 @@ from core.utils import extraire_image_html
 
 
 def chercher_google_news(mot_cle, seuil):
-    url = f"https://news.google.com/rss/search?q={quote(mot_cle)}&hl=fr&gl=FR&ceid=FR:fr"
+
+    url = (
+        "https://news.google.com/rss/search"
+        f"?q={quote(mot_cle)}&hl=fr&gl=FR&ceid=FR:fr"
+    )
 
     flux = feedparser.parse(url)
 
@@ -19,34 +23,44 @@ def chercher_google_news(mot_cle, seuil):
         date_pub = None
 
         if entree.get("published_parsed"):
-            date_pub = datetime(*entree.published_parsed[:6], tzinfo=timezone.utc)
+
+            date_pub = datetime(
+                *entree.published_parsed[:6],
+                tzinfo=timezone.utc
+            )
 
         if not est_recent(date_pub, seuil):
             continue
 
-        titre_brut = entree.title
+        titre = entree.title
 
         media = None
 
-        if " - " in titre_brut:
-            titre_sans_media, _, media = titre_brut.rpartition(" - ")
+        if " - " in titre:
+
+            titre_sans_media, _, media = titre.rpartition(" - ")
 
             if titre_sans_media.strip():
-                titre_brut = titre_sans_media.strip()
+                titre = titre_sans_media.strip()
 
-        source_label = "Google News"
-
-        if media:
-            source_label += f" - {media.strip()}"
-
-        image = extraire_image_html(entree.get("summary", ""))
+        image = extraire_image_html(
+            entree.get("summary", "")
+        )
 
         resultats.append({
-            "source": source_label,
-            "titre": titre_brut,
+
+            "source": "Google News" + (
+                f" - {media.strip()}" if media else ""
+            ),
+
+            "titre": titre,
+
             "lien": entree.link,
+
             "date_pub": date_pub,
+
             "image": image
+
         })
 
     return resultats
