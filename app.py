@@ -102,16 +102,20 @@ with col2:
 
 if lancer:
 
-    for mot in st.session_state.mots_cles:
+    with st.spinner("Recherche en cours..."):
 
-        st.subheader(f"Résultats : {mot}")
+    toutes_les_recherches = rechercher_plusieurs_mots(
+        st.session_state.mots_cles
+    )
 
-        with st.spinner("Recherche en cours..."):
+for mc in st.session_state.mots_cles:
 
-            resultats, maintenant = rechercher_tout(mot)
+    st.subheader(f"Résultats pour « {mc} »")
 
-        afficher_resultats(
-            resultats=resultats,
-            maintenant=maintenant,
-            ne_garder_que_regroupes=ne_garder_que_regroupes
-        )
+    resultats, maintenant = toutes_les_recherches[mc]
+
+    afficher_resultats(
+        resultats,
+        maintenant,
+        ne_garder_que_regroupes
+    )
