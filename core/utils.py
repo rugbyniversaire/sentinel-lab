@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 
 def parser_date_iso(chaine):
     """Parse une date ISO 8601 de façon tolérante (gère les fractions de secondes non standard)."""
