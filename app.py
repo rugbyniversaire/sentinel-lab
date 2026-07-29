@@ -1,76 +1,114 @@
 import streamlit as st
-import requests
-import feedparser
-import re
-from datetime import datetime, timezone, timedelta
-from urllib.parse import quote
-from core.search_engine import rechercher_tout
 
-st.set_page_config(page_title="Veille mot-clé", page_icon="🔍")
-st.title("🔍 Outil de veille")
-st.caption("Résultats publiés dans les dernières 24h, toutes sources confondues")
+from core.search_engine import rechercher_tout
+from ui.display import afficher_resultats
+
+
+st.set_page_config(
+    page_title="Veille mot-clé",
+    page_icon="🔍",
+    layout="wide"
+)
+
+st.title("🔍 Sentinel Lab")
+st.caption("Résultats publiés dans les dernières 24 heures")
+
+
+# ============================
+# SESSION
+# ============================
 
 if "mots_cles" not in st.session_state:
     st.session_state.mots_cles = []
-from core.constants import LIMITE_HEURES, SEUIL_SIMILARITE, MOTS_VIDES
 
-# ------------------- GESTION DES MOTS-CLES -------------------
-st.subheader("Tes mots-clés suivis")
+
+# ============================
+# GESTION DES MOTS-CLES
+# ============================
+
+st.subheader("Mots-clés suivis")
 
 col1, col2 = st.columns([4, 1])
+
 with col1:
-    nouveau_mot_cle = st.text_input("Ajouter un mot-clé", label_visibility="collapsed", placeholder="Ajouter un mot-clé")
+    nouveau_mot_cle = st.text_input(
+        "Ajouter un mot-clé",
+        placeholder="Ex : Intelligence artificielle",
+        label_visibility="collapsed"
+    )
+
 with col2:
-    if st.button("Ajouter") and nouveau_mot_cle.strip():
-        if nouveau_mot_cle.strip() not in st.session_state.mots_cles:
-            st.session_state.mots_cles.append(nouveau_mot_cle.strip())
-        st.rerun()
+    if st.button("Ajouter"):
+        mot = nouveau_mot_cle.strip()
+
+        if mot:
+
+            if mot not in st.session_state.mots_cles:
+                st.session_state.mots_cles.append(mot)
+
+            st.rerun()
+
 
 if not st.session_state.mots_cles:
-    st.info("Aucun mot-clé ajouté pour l'instant.")
+
+    st.info("Aucun mot-clé ajouté.")
+
 else:
-    for mc in st.session_state.mots_cles:
-        col_a, col_b = st.columns([5, 1])
-        col_a.write(f"• {mc}")
-        if col_b.button("🗑️", key=f"suppr_{mc}"):
-            st.session_state.mots_cles.remove(mc)
+
+    for mot in st.session_state.mots_cles:
+
+        c1, c2 = st.columns([6, 1])
+
+        c1.write(f"• {mot}")
+
+        if c2.button("🗑️", key=f"delete_{mot}"):
+
+            st.session_state.mots_cles.remove(mot)
+
             st.rerun()
+
 
 st.divider()
 
-col_lancer, col_filtre = st.columns([2, 2])
-with col_lancer:
-    lancer = st.button("Lancer la veille sur tous les mots-clés", disabled=not st.session_state.mots_cles)
-with col_filtre:
-    ne_garder_que_regroupes = st.checkbox("N'afficher que les sujets avec plusieurs sources", value=False)
+
+# ============================
+# OPTIONS
+# ============================
+
+col1, col2 = st.columns([2, 3])
+
+with col1:
+
+    lancer = st.button(
+        "Lancer la veille",
+        use_container_width=True,
+        disabled=len(st.session_state.mots_cles) == 0
+    )
+
+with col2:
+
+    ne_garder_que_regroupes = st.checkbox(
+        "Afficher uniquement les sujets présents dans plusieurs sources",
+        value=False
+    )
 
 
-# ------------------- REGROUPEMENT PAR SIMILARITE -------------------
-from core.grouping import (
-    regrouper_resultats,
-    synthetiser_titre
-)
+# ============================
+# LANCEMENT
+# ============================
 
-
-
-
-# ------------------- FONCTIONS DE RECHERCHE -------------------
-
-from core.utils import parser_date_iso, extraire_image_html
-from core.filters import (
-    est_recent,
-    est_pertinent,
-    dedupliquer
-)
-
-
-
-# ------------------- LANCEMENT -------------------
 if lancer:
-    if not YOUTUBE_API_KEY:
-        st.info("Astuce : ajoute YOUTUBE_API_KEY dans les Secrets Streamlit pour inclure les vidéos YouTube.")
-    for mc in st.session_state.mots_cles:
-        st.subheader(f"Résultats pour « {mc} »")
-        with st.spinner(f"Recherche pour « {mc} »..."):
-            resultats, maintenant = rechercher_tout(mc)
-        afficher_resultats(resultats, maintenant, ne_garder_que_regroupes)
+
+    for mot in st.session_state.mots_cles:
+
+        st.subheader(f"Résultats : {mot}")
+
+        with st.spinner("Recherche en cours..."):
+
+            resultats, maintenant = rechercher_tout(mot)
+
+        afficher_resultats(
+            resultats=resultats,
+            maintenant=maintenant,
+            ne_garder_que_regroupes=ne_garder_que_regroupes
+        )
