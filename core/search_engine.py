@@ -1,7 +1,15 @@
-from datetime import datetime, timezone, timedelta
+from datetime import (
+    datetime,
+    timezone,
+    timedelta
+)
 
 from core.constants import LIMITE_HEURES
-from core.filters import est_pertinent, dedupliquer
+
+from core.filters import (
+    est_pertinent,
+    dedupliquer
+)
 
 from connectors.google_news import chercher_google_news
 from connectors.reddit import chercher_reddit
@@ -12,20 +20,72 @@ from connectors.youtube import chercher_youtube
 
 
 def rechercher_tout(mot_cle):
-    maintenant = datetime.now(timezone.utc)
-    seuil = maintenant - timedelta(hours=LIMITE_HEURES)
 
-    tous = (
-        chercher_google_news(mot_cle, seuil)
-        + chercher_reddit(mot_cle, seuil)
-        + chercher_hackernews(mot_cle, seuil)
-        + chercher_mastodon(mot_cle, seuil)
-        + chercher_bluesky(mot_cle, seuil)
-        + chercher_youtube(mot_cle, seuil)
+    maintenant = datetime.now(
+        timezone.utc
     )
 
-    tous = [r for r in tous if est_pertinent(mot_cle, r["titre"])]
-    tous = dedupliquer(tous)
-    tous.sort(key=lambda r: r["date_pub"], reverse=True)
+    seuil = maintenant - timedelta(
+        hours=LIMITE_HEURES
+    )
 
-    return tous, maintenant
+    resultats = (
+
+        chercher_google_news(
+            mot_cle,
+            seuil
+        )
+
+        + chercher_reddit(
+            mot_cle,
+            seuil
+        )
+
+        + chercher_hackernews(
+            mot_cle,
+            seuil
+        )
+
+        + chercher_mastodon(
+            mot_cle,
+            seuil
+        )
+
+        + chercher_bluesky(
+            mot_cle,
+            seuil
+        )
+
+        + chercher_youtube(
+            mot_cle,
+            seuil
+        )
+
+    )
+
+    resultats = [
+
+        r
+
+        for r in resultats
+
+        if est_pertinent(
+            mot_cle,
+            r["titre"]
+        )
+
+    ]
+
+    resultats = dedupliquer(
+        resultats
+    )
+
+    resultats.sort(
+
+        key=lambda r: r["date_pub"],
+
+        reverse=True
+
+    )
+
+    return resultats, maintenant
