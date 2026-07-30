@@ -1,121 +1,130 @@
 import streamlit as st
 
-from core.search_engine import (
-    rechercher_tout,
-    rechercher_plusieurs_mots
-)
+from core.constants import LIMITE_HEURES
+from core.search_engine import rechercher_plusieurs_mots
 from ui.display import afficher_resultats
 
+# -------------------------------------------------
+# CONFIGURATION
+# -------------------------------------------------
 
 st.set_page_config(
     page_title="Veille mot-clé",
-    page_icon="🔍",
-    layout="wide"
+    page_icon="🔍"
 )
 
-st.title("🔍 Sentinel Lab")
-st.caption("Résultats publiés dans les dernières 24 heures")
+st.title("🔍 Outil de veille")
 
+st.caption(
+    f"Résultats publiés dans les dernières {LIMITE_HEURES} heures"
+)
 
-# ============================
-# SESSION
-# ============================
+# -------------------------------------------------
+# ETAT DE SESSION
+# -------------------------------------------------
 
 if "mots_cles" not in st.session_state:
     st.session_state.mots_cles = []
 
-
-# ============================
+# -------------------------------------------------
 # GESTION DES MOTS-CLES
-# ============================
+# -------------------------------------------------
 
-st.subheader("Mots-clés suivis")
+st.subheader("Tes mots-clés suivis")
 
 col1, col2 = st.columns([4, 1])
 
 with col1:
-    nouveau_mot_cle = st.text_input(
+
+    nouveau = st.text_input(
         "Ajouter un mot-clé",
-        placeholder="Ex : Intelligence artificielle",
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        placeholder="Ajouter un mot-clé"
     )
 
 with col2:
+
     if st.button("Ajouter"):
-        mot = nouveau_mot_cle.strip()
 
-        if mot:
+        if nouveau.strip():
 
-            if mot not in st.session_state.mots_cles:
-                st.session_state.mots_cles.append(mot)
+            if nouveau.strip() not in st.session_state.mots_cles:
+
+                st.session_state.mots_cles.append(
+                    nouveau.strip()
+                )
 
             st.rerun()
 
+# -------------------------------------------------
+# LISTE DES MOTS-CLES
+# -------------------------------------------------
 
 if not st.session_state.mots_cles:
 
-    st.info("Aucun mot-clé ajouté.")
+    st.info(
+        "Aucun mot-clé ajouté."
+    )
 
 else:
 
     for mot in st.session_state.mots_cles:
 
-        c1, c2 = st.columns([6, 1])
+        c1, c2 = st.columns([5, 1])
 
         c1.write(f"• {mot}")
 
-        if c2.button("🗑️", key=f"delete_{mot}"):
+        if c2.button(
+            "🗑️",
+            key=f"supprimer_{mot}"
+        ):
 
             st.session_state.mots_cles.remove(mot)
 
             st.rerun()
 
-
 st.divider()
 
-
-# ============================
+# -------------------------------------------------
 # OPTIONS
-# ============================
+# -------------------------------------------------
 
-col1, col2 = st.columns([2, 3])
+col1, col2 = st.columns(2)
 
 with col1:
 
     lancer = st.button(
         "Lancer la veille",
-        use_container_width=True,
-        disabled=len(st.session_state.mots_cles) == 0
+        disabled=not st.session_state.mots_cles
     )
 
 with col2:
 
     ne_garder_que_regroupes = st.checkbox(
-        "Afficher uniquement les sujets présents dans plusieurs sources",
+        "Uniquement les sujets multi-sources",
         value=False
     )
 
-
-# ============================
-# LANCEMENT
-# ============================
+# -------------------------------------------------
+# RECHERCHE
+# -------------------------------------------------
 
 if lancer:
 
     with st.spinner("Recherche en cours..."):
 
-    toutes_les_recherches = rechercher_plusieurs_mots(
-        st.session_state.mots_cles
-    )
+        toutes_les_recherches = rechercher_plusieurs_mots(
+            st.session_state.mots_cles
+        )
 
-for mc in st.session_state.mots_cles:
+    for mot in st.session_state.mots_cles:
 
-    st.subheader(f"Résultats pour « {mc} »")
+        st.subheader(f"Résultats pour « {mot} »")
 
-    resultats, maintenant = toutes_les_recherches[mc]
+        resultats, maintenant = toutes_les_recherches[mot]
 
-    afficher_resultats(
-        resultats,
-        maintenant,
-        ne_garder_que_regroupes
-    )
+        afficher_resultats(
+            resultats,
+            maintenant,
+            ne_garder_que_regroupes
+        )
