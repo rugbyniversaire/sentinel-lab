@@ -11,6 +11,8 @@ from connectors.mastodon import chercher_mastodon
 from connectors.bluesky import chercher_bluesky
 from connectors.youtube import chercher_youtube
 
+from core.enrich import enrichir_resultat
+
 CONNECTEURS = [
     chercher_google_news,
     chercher_reddit,
@@ -59,6 +61,11 @@ def rechercher_tout(mot_cle):
     ]
 
     tous = dedupliquer(tous)
+
+tous = [
+    enrichir_resultat(r)
+    for r in tous
+]
 
     tous.sort(
         key=lambda r: r["date_pub"],
