@@ -6,6 +6,7 @@ from core.grouping import (
 )
 
 from core.constants import LIMITE_HEURES
+from core.images import recuperer_image_article
 
 
 def afficher_resultats(resultats, maintenant, ne_garder_que_regroupes=False):
@@ -29,15 +30,11 @@ def afficher_resultats(resultats, maintenant, ne_garder_que_regroupes=False):
         ]
 
         if not groupes:
-
-            st.info(
-                "Aucun sujet multi-sources."
-            )
-
+            st.info("Aucun sujet couvert par plusieurs sources.")
             return
 
     st.success(
-        f"{len(groupes)} sujet(s) détecté(s)"
+        f"{len(resultats)} résultat(s) regroupé(s) en {len(groupes)} sujet(s)"
     )
 
     for groupe in groupes:
@@ -54,32 +51,56 @@ def afficher_resultats(resultats, maintenant, ne_garder_que_regroupes=False):
 
         heures = int(age.total_seconds() // 3600)
 
-        minutes = int(
-            (age.total_seconds() % 3600) // 60
-        )
+        minutes = int((age.total_seconds() % 3600) // 60)
 
-        image = next(
-            (
-                e.get("image")
-                for e in elements
-                if e.get("image")
-            ),
-            None,
-        )
+        # -----------------------------
+        # IMAGE PRINCIPALE
+        # -----------------------------
 
-        nb_articles = len(
-            [
-                e for e in elements
-                if "YouTube" not in e["source"]
-            ]
-        )
+        image = None
 
-        nb_videos = len(
-            [
-                e for e in elements
-                if "YouTube" in e["source"]
-            ]
-        )
+        # 1. Image déjà présente dans les résultats
+        for e in elements:
+
+            if e.get("image"):
+
+                image = e["image"]
+
+                break
+
+        # 2. Sinon récupération via OpenGraph
+        if image is None:
+
+            for e in elements:
+
+                image = recuperer_image_article(
+                    e["lien"]
+                )
+
+                if image:
+                    break
+
+        # -----------------------------
+        # STATISTIQUES
+        # -----------------------------
+
+        nb_articles = len([
+            e for e in elements
+            if "YouTube" not in e["source"]
+        ])
+
+        nb_videos = len([
+            e for e in elements
+            if "YouTube" in e["source"]
+        ])
+
+        nb_sources = len({
+            e["source"] for e in elements
+        })
+
+        # -----------------------------
+        # CARTE PRINCIPALE
+        # -----------------------------
 
         with st.container(border=True):
 
@@ -105,6 +126,10 @@ def afficher_resultats(resultats, maintenant, ne_garder_que_regroupes=False):
                 )
 
             badges.append(
+                f"🌐 {nb_sources} source(s)"
+            )
+
+            badges.append(
                 f"⏱ {heures}h{minutes:02d}"
             )
 
@@ -112,27 +137,49 @@ def afficher_resultats(resultats, maintenant, ne_garder_que_regroupes=False):
 
             st.markdown("---")
 
-            for e in elements:
+            # -----------------------------
+            # DETAIL DES SOURCES
+            # -----------------------------
 
-                cols = st.columns([1, 8])
+            with st.expander("Voir les sources"):
 
-                with cols[0]:
+                for e in elements:
 
-                    if e.get("image"):
+                    cols = st.columns([1, 5])
 
-                        st.image(
-                            e["image"],
-                            width=80
+                    with cols[0]:
+
+                        if e.get("image"):
+
+                            st.image(
+                                e["image"],
+                                width=80
+                            )
+
+                    with cols[1]:
+
+                        st.markdown(
+                            f"### {e['source']}"
                         )
 
-                with cols[1]:
+                        st.markdown(
+                            f"**{e['titre']}**"
+                        )
 
-                    st.markdown(
-                        f"**{e['source']}**"
-                    )
+                        st.markdown(
+                            f"[🔗 Ouvrir l'article]({e['lien']})"
+                        )
 
-                    st.markdown(
-                        f"[{e['titre']}]({e['lien']})"
-                    )
+                        age_source = maintenant - e["date_pub"]
 
-            st.write("")
+                        h = int(age_source.total_seconds() // 3600)
+
+                        m = int(
+                            (age_source.total_seconds() % 3600) // 60
+                        )
+
+                        st.caption(
+                            f"Publié il y a {h}h{m:02d}"
+                        )
+
+                        st.markdown("---")
