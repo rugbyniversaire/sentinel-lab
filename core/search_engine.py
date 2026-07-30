@@ -4,30 +4,39 @@ from datetime import datetime, timezone, timedelta
 from core.constants import LIMITE_HEURES
 from core.filters import est_pertinent, dedupliquer
 
-from connectors.google_news import chercher_google_news
-from connectors.reddit import chercher_reddit
-from connectors.hackernews import chercher_hackernews
-from connectors.mastodon import chercher_mastodon
-from connectors.bluesky import chercher_bluesky
-from connectors.youtube import chercher_youtube
+from connectors import CONNECTEURS
 
 
 def rechercher_tout(mot_cle):
     """
-    Recherche un seul mot-clé sur toutes les sources.
+    Recherche un mot-clé sur tous les connecteurs,
+    eux-mêmes lancés en parallèle.
     """
 
     maintenant = datetime.now(timezone.utc)
+
     seuil = maintenant - timedelta(hours=LIMITE_HEURES)
 
-    tous = (
-        chercher_google_news(mot_cle, seuil)
-        + chercher_reddit(mot_cle, seuil)
-        + chercher_hackernews(mot_cle, seuil)
-        + chercher_mastodon(mot_cle, seuil)
-        + chercher_bluesky(mot_cle, seuil)
-        + chercher_youtube(mot_cle, seuil)
-    )
+    tous = []
+
+    with ThreadPoolExecutor(max_workers=len(CONNECTEURS)) as executor:
+
+        futures = {
+            executor.submit(connecteur, mot_cle, seuil): connecteur.__name__
+            for connecteur in CONNECTEURS
+        }
+
+        for future in as_completed(futures):
+
+            try:
+
+                resultats = future.result()
+
+                tous.extend(resultats)
+
+            except Exception as e:
+
+                print(f"Erreur connecteur {futures[future]} : {e}")
 
     tous = [
         r
@@ -47,21 +56,20 @@ def rechercher_tout(mot_cle):
 
 def rechercher_plusieurs_mots(mots_cles):
     """
-    Lance plusieurs recherches en parallèle.
-    Retourne un dictionnaire :
-    {
-        "OpenAI": (resultats, maintenant),
-        "Tesla": (...),
-        ...
-    }
+    Recherche plusieurs mots-clés en parallèle.
     """
 
     resultats = {}
 
-    with ThreadPoolExecutor(max_workers=min(8, len(mots_cles))) as executor:
+    with ThreadPoolExecutor(
+        max_workers=min(len(mots_cles), 8)
+    ) as executor:
 
         futures = {
-            executor.submit(rechercher_tout, mot): mot
+            executor.submit(
+                rechercher_tout,
+                mot
+            ): mot
             for mot in mots_cles
         }
 
@@ -75,8 +83,11 @@ def rechercher_plusieurs_mots(mots_cles):
 
             except Exception as e:
 
-                print(f"Erreur pour {mot} : {e}")
+                print(f"Erreur {mot} : {e}")
 
-                resultats[mot] = ([], datetime.now(timezone.utc))
+                resultats[mot] = (
+                    [],
+                    datetime.now(timezone.utc)
+                )
 
     return resultats
