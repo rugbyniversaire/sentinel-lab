@@ -1,49 +1,43 @@
 import streamlit as st
 
-from core.constants import LIMITE_HEURES
 from core.grouping import (
     regrouper_resultats,
-    synthetiser_titre,
+    synthetiser_titre
 )
 
+from core.constants import LIMITE_HEURES
 
-def afficher_resultats(
-    resultats,
-    maintenant,
-    ne_garder_que_regroupes=False
-):
+
+def afficher_resultats(resultats, maintenant, ne_garder_que_regroupes=False):
+
     if not resultats:
-        st.warning(
-            f"Aucun résultat publié dans les dernières {LIMITE_HEURES}h."
-        )
+        st.warning(f"Aucun résultat trouvé dans les dernières {LIMITE_HEURES} heures.")
         return
 
     groupes = regrouper_resultats(resultats)
 
     groupes.sort(
-        key=lambda g: max(
-            e["date_pub"] for e in g["elements"]
-        ),
-        reverse=True
+        key=lambda g: max(e["date_pub"] for e in g["elements"]),
+        reverse=True,
     )
 
     if ne_garder_que_regroupes:
 
         groupes = [
-            g
-            for g in groupes
+            g for g in groupes
             if len(g["elements"]) > 1
         ]
 
         if not groupes:
-            st.warning(
-                "Aucun sujet couvert par plusieurs sources."
+
+            st.info(
+                "Aucun sujet multi-sources."
             )
+
             return
 
     st.success(
-        f"{len(resultats)} résultat(s) trouvés "
-        f"regroupés en {len(groupes)} sujet(s)"
+        f"{len(groupes)} sujet(s) détecté(s)"
     )
 
     for groupe in groupes:
@@ -53,141 +47,92 @@ def afficher_resultats(
         titre = synthetiser_titre(elements)
 
         plus_recent = max(
-            e["date_pub"]
-            for e in elements
+            e["date_pub"] for e in elements
         )
 
         age = maintenant - plus_recent
 
-        heures = int(
-            age.total_seconds() // 3600
-        )
+        heures = int(age.total_seconds() // 3600)
 
         minutes = int(
             (age.total_seconds() % 3600) // 60
         )
 
-        # -----------------------------
-        # CAS 1 : un seul résultat
-        # -----------------------------
+        image = next(
+            (
+                e.get("image")
+                for e in elements
+                if e.get("image")
+            ),
+            None,
+        )
 
-        if len(elements) == 1:
+        nb_articles = len(
+            [
+                e for e in elements
+                if "YouTube" not in e["source"]
+            ]
+        )
 
-            e = elements[0]
+        nb_videos = len(
+            [
+                e for e in elements
+                if "YouTube" in e["source"]
+            ]
+        )
 
-            if e.get("image"):
+        with st.container(border=True):
 
-                col_img, col_txt = st.columns(
-                    [1, 4]
+            if image:
+
+                st.image(
+                    image,
+                    use_container_width=True
                 )
 
-                with col_img:
-                    st.image(
-                        e["image"],
-                        use_container_width=True
-                    )
+            st.subheader(titre)
 
-                with col_txt:
+            badges = []
+
+            if nb_articles:
+                badges.append(
+                    f"📰 {nb_articles} article(s)"
+                )
+
+            if nb_videos:
+                badges.append(
+                    f"📺 {nb_videos} vidéo(s)"
+                )
+
+            badges.append(
+                f"⏱ {heures}h{minutes:02d}"
+            )
+
+            st.caption(" • ".join(badges))
+
+            st.markdown("---")
+
+            for e in elements:
+
+                cols = st.columns([1, 8])
+
+                with cols[0]:
+
+                    if e.get("image"):
+
+                        st.image(
+                            e["image"],
+                            width=80
+                        )
+
+                with cols[1]:
 
                     st.markdown(
                         f"**{e['source']}**"
                     )
 
-                    st.write(
-                        e["titre"]
-                    )
-
                     st.markdown(
-                        f"[Ouvrir la source]({e['lien']})"
+                        f"[{e['titre']}]({e['lien']})"
                     )
 
-                    st.caption(
-                        f"Publié il y a {heures}h{minutes:02d}"
-                    )
-
-            else:
-
-                st.markdown(
-                    f"**{e['source']}**"
-                )
-
-                st.write(
-                    e["titre"]
-                )
-
-                st.markdown(
-                    f"[Ouvrir la source]({e['lien']})"
-                )
-
-                st.caption(
-                    f"Publié il y a {heures}h{minutes:02d}"
-                )
-
-        # -----------------------------
-        # CAS 2 : plusieurs résultats
-        # -----------------------------
-
-        else:
-
-            with st.expander(
-
-                f"{titre} "
-                f"({len(elements)} sources)"
-
-            ):
-
-                image = next(
-
-                    (
-                        e["image"]
-
-                        for e in elements
-
-                        if e.get("image")
-                    ),
-
-                    None
-
-                )
-
-                if image:
-
-                    st.image(
-                        image,
-                        width=320
-                    )
-
-                for e in elements:
-
-                    age = maintenant - e["date_pub"]
-
-                    h = int(
-                        age.total_seconds() // 3600
-                    )
-
-                    m = int(
-                        (
-                            age.total_seconds()
-                            % 3600
-                        ) // 60
-                    )
-
-                    st.markdown(
-                        f"**{e['source']}**"
-                    )
-
-                    st.write(
-                        e["titre"]
-                    )
-
-                    st.markdown(
-                        f"[Ouvrir la source]({e['lien']})"
-                    )
-
-                    st.caption(
-                        f"Publié il y a {h}h{m:02d}"
-                    )
-
-                    st.divider()
-
-        st.divider()
+            st.write("")
