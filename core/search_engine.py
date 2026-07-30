@@ -4,7 +4,21 @@ from datetime import datetime, timezone, timedelta
 from core.constants import LIMITE_HEURES
 from core.filters import est_pertinent, dedupliquer
 
-from connectors import CONNECTEURS
+from connectors.google_news import chercher_google_news
+from connectors.reddit import chercher_reddit
+from connectors.hackernews import chercher_hackernews
+from connectors.mastodon import chercher_mastodon
+from connectors.bluesky import chercher_bluesky
+from connectors.youtube import chercher_youtube
+
+CONNECTEURS = [
+    chercher_google_news,
+    chercher_reddit,
+    chercher_hackernews,
+    chercher_mastodon,
+    chercher_bluesky,
+    chercher_youtube,
+]
 
 
 def rechercher_tout(mot_cle):
