@@ -1,22 +1,51 @@
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
-
+from urllib.parse import urlparse, urljoin
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0"
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0 Safari/537.36"
+    )
 }
+
+
+def _meta(soup, property_name):
+    tag = soup.find("meta", property=property_name)
+    if tag:
+        return tag.get("content")
+
+    tag = soup.find("meta", attrs={"name": property_name})
+    if tag:
+        return tag.get("content")
+
+    return None
+
+
+def _favicon(soup, url):
+    icon = soup.find(
+        "link",
+        rel=lambda x: x and "icon" in x.lower()
+    )
+
+    if icon and icon.get("href"):
+
+        href = icon["href"]
+
+        if href.startswith("http"):
+            return href
+
+        return urljoin(url, href)
+
+    parsed = urlparse(url)
+
+    return f"{parsed.scheme}://{parsed.netloc}/favicon.ico"
 
 
 def enrichir_resultat(resultat):
     """
-    Enrichit un résultat avec :
-    - le vrai lien
-    - le vrai titre
-    - le média
-    - l'image OpenGraph
-    - la description
-    - le favicon
+    Enrichit automatiquement un résultat.
     """
 
     url = resultat.get("lien")
@@ -28,8 +57,8 @@ def enrichir_resultat(resultat):
 
         r = requests.get(
             url,
-            timeout=8,
             headers=HEADERS,
+            timeout=8,
             allow_redirects=True,
         )
 
@@ -42,72 +71,34 @@ def enrichir_resultat(resultat):
 
         resultat["lien"] = url_finale
 
-        resultat["titre"] = (
-            _meta(soup, "og:title")
-            or soup.title.string
-            if soup.title
-            else resultat["titre"]
-        )
+        titre = _meta(soup, "og:title")
+        if not titre and soup.title:
+            titre = soup.title.text.strip()
 
-        resultat["description"] = (
-            _meta(soup, "og:description")
-            or ""
-        )
+        if titre:
+            resultat["titre"] = titre
 
-        resultat["image"] = (
-            _meta(soup, "og:image")
-            or resultat.get("image")
-        )
+        description = _meta(soup, "og:description")
+        if description:
+            resultat["description"] = description
 
-        resultat["media"] = (
+        image = _meta(soup, "og:image")
+        if image:
+            resultat["image"] = image
+
+        media = (
             _meta(soup, "og:site_name")
-            or urlparse(url_finale).netloc
+            or urlparse(url_finale).netloc.replace("www.", "")
         )
 
-        resultat["favicon"] = (
-            _favicon(soup, url_finale)
+        resultat["media"] = media
+
+        resultat["favicon"] = _favicon(
+            soup,
+            url_finale
         )
 
     except Exception:
-
         pass
 
     return resultat
-
-
-def _meta(soup, prop):
-
-    tag = soup.find(
-        "meta",
-        property=prop
-    )
-
-    if tag:
-
-        return tag.get("content")
-
-    return None
-
-
-def _favicon(soup, url):
-
-    icon = soup.find(
-        "link",
-        rel=lambda x: x and "icon" in x.lower()
-    )
-
-    if icon:
-
-        href = icon.get("href")
-
-        if href:
-
-            if href.startswith("http"):
-
-                return href
-
-            from urllib.parse import urljoin
-
-            return urljoin(url, href)
-
-    return None
