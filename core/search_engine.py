@@ -70,10 +70,13 @@ def rechercher_tout(mot_cle):
     tous = dedupliquer(tous)
 
     # enrichissement des résultats
+    print("Avant enrichissement :", len(tous))
     tous = [
         enrichir_resultat(r)
         for r in tous
     ]
+    print("Après enrichissement :", len(tous))
+    
 
     tous.sort(
         key=lambda r: r["date_pub"],
