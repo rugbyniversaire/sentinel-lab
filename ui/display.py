@@ -42,6 +42,7 @@ def afficher_resultats(resultats, maintenant, ne_garder_que_regroupes=False):
         )
 
         principal = elements[0]
+        st.write(principal)
 
         titre = principal.get("titre") or "Sans titre"
 
