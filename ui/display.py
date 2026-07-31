@@ -1,10 +1,6 @@
 import streamlit as st
 
-from core.grouping import (
-    regrouper_resultats,
-    synthetiser_titre
-)
-
+from core.grouping import regrouper_resultats
 from core.constants import LIMITE_HEURES
 from core.images import recuperer_image_article
 
@@ -39,50 +35,34 @@ def afficher_resultats(resultats, maintenant, ne_garder_que_regroupes=False):
 
     for groupe in groupes:
 
-        elements = groupe["elements"]
-
-        titre = synthetiser_titre(elements)
-
-        plus_recent = max(
-            e["date_pub"] for e in elements
+        elements = sorted(
+            groupe["elements"],
+            key=lambda e: e["date_pub"],
+            reverse=True
         )
 
-        age = maintenant - plus_recent
+        principal = elements[0]
+
+        titre = principal.get("titre") or "Sans titre"
+
+        media = principal.get("media", principal.get("source", ""))
+
+        description = principal.get("description", "")
+
+        image = principal.get("image")
+
+        if not image:
+            image = recuperer_image_article(
+                principal["lien"]
+            )
+
+        age = maintenant - principal["date_pub"]
 
         heures = int(age.total_seconds() // 3600)
 
-        minutes = int((age.total_seconds() % 3600) // 60)
-
-        # -----------------------------
-        # IMAGE PRINCIPALE
-        # -----------------------------
-
-        image = None
-
-        # 1. Image déjà présente dans les résultats
-        for e in elements:
-
-            if e.get("image"):
-
-                image = e["image"]
-
-                break
-
-        # 2. Sinon récupération via OpenGraph
-        if image is None:
-
-            for e in elements:
-
-                image = recuperer_image_article(
-                    e["lien"]
-                )
-
-                if image:
-                    break
-
-        # -----------------------------
-        # STATISTIQUES
-        # -----------------------------
+        minutes = int(
+            (age.total_seconds() % 3600) // 60
+        )
 
         nb_articles = len([
             e for e in elements
@@ -95,12 +75,9 @@ def afficher_resultats(resultats, maintenant, ne_garder_que_regroupes=False):
         ])
 
         nb_sources = len({
-            e["source"] for e in elements
+            e["source"]
+            for e in elements
         })
-
-        # -----------------------------
-        # CARTE PRINCIPALE
-        # -----------------------------
 
         with st.container(border=True):
 
@@ -111,75 +88,79 @@ def afficher_resultats(resultats, maintenant, ne_garder_que_regroupes=False):
                     use_container_width=True
                 )
 
-            st.subheader(titre)
+            st.markdown(f"## {titre}")
+
+            st.caption(
+                f"📰 {media} • ⏱️ {heures}h{minutes:02d}"
+            )
+
+            if description:
+
+                st.write(description)
 
             badges = []
 
             if nb_articles:
-                badges.append(
-                    f"📰 {nb_articles} article(s)"
-                )
+                badges.append(f"📰 {nb_articles} article(s)")
 
             if nb_videos:
-                badges.append(
-                    f"📺 {nb_videos} vidéo(s)"
-                )
+                badges.append(f"📺 {nb_videos} vidéo(s)")
 
-            badges.append(
-                f"🌐 {nb_sources} source(s)"
-            )
-
-            badges.append(
-                f"⏱ {heures}h{minutes:02d}"
-            )
+            badges.append(f"🌐 {nb_sources} source(s)")
 
             st.caption(" • ".join(badges))
 
-            st.markdown("---")
+            st.link_button(
+                "🔗 Lire l'article principal",
+                principal["lien"],
+                use_container_width=True
+            )
 
-            # -----------------------------
-            # DETAIL DES SOURCES
-            # -----------------------------
+            if len(elements) > 1:
 
-            with st.expander("Voir les sources"):
+                st.divider()
 
-                for e in elements:
+                with st.expander(f"Voir les {len(elements)} sources"):
 
-                    cols = st.columns([1, 5])
+                    for e in elements:
 
-                    with cols[0]:
+                        cols = st.columns([1, 4])
 
-                        if e.get("image"):
+                        with cols[0]:
 
-                            st.image(
-                                e["image"],
-                                width=80
+                            if e.get("image"):
+
+                                st.image(
+                                    e["image"],
+                                    width=100
+                                )
+
+                        with cols[1]:
+
+                            st.markdown(
+                                f"**{e.get('media', e['source'])}**"
                             )
 
-                    with cols[1]:
+                            st.markdown(
+                                e["titre"]
+                            )
 
-                        st.markdown(
-                            f"### {e['source']}"
-                        )
+                            st.link_button(
+                                "Ouvrir",
+                                e["lien"],
+                                key=e["lien"]
+                            )
 
-                        st.markdown(
-                            f"**{e['titre']}**"
-                        )
+                            age2 = maintenant - e["date_pub"]
 
-                        st.markdown(
-                            f"[🔗 Ouvrir l'article]({e['lien']})"
-                        )
+                            h = int(age2.total_seconds() // 3600)
 
-                        age_source = maintenant - e["date_pub"]
+                            m = int(
+                                (age2.total_seconds() % 3600) // 60
+                            )
 
-                        h = int(age_source.total_seconds() // 3600)
+                            st.caption(
+                                f"Publié il y a {h}h{m:02d}"
+                            )
 
-                        m = int(
-                            (age_source.total_seconds() % 3600) // 60
-                        )
-
-                        st.caption(
-                            f"Publié il y a {h}h{m:02d}"
-                        )
-
-                        st.markdown("---")
+                            st.divider()
