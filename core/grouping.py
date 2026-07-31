@@ -1,40 +1,34 @@
 import re
 
-from core.constants import (
-    MOTS_VIDES,
-    SEUIL_SIMILARITE
-)
+from core.constants import MOTS_VIDES, SEUIL_SIMILARITE
 
 
 def normaliser_titre(titre):
-
     mots = re.findall(
-        r"[a-zàâäéèêëïîôöùûüç0-9]+",
+        r"[A-Za-zÀ-ÿ0-9]+",
         titre.lower()
     )
 
     return {
         m
         for m in mots
-        if m not in MOTS_VIDES and len(m) > 2
+        if len(m) > 2
+        and m not in MOTS_VIDES
     }
 
 
-def similarite(mots_a, mots_b):
+def similarite(a, b):
 
-    if not mots_a or not mots_b:
+    if not a or not b:
         return 0
 
-    intersection = len(mots_a & mots_b)
+    intersection = len(a & b)
 
-    union = len(mots_a | mots_b)
+    union = len(a | b)
 
-    jaccard = intersection / union if union else 0
+    jaccard = intersection / union
 
-    chevauchement = (
-        intersection /
-        min(len(mots_a), len(mots_b))
-    )
+    chevauchement = intersection / min(len(a), len(b))
 
     return max(
         jaccard,
@@ -69,11 +63,14 @@ def regrouper_resultats(resultats):
             ):
 
                 meilleur = groupe
+
                 meilleur_score = score
 
         if meilleur:
 
-            meilleur["elements"].append(resultat)
+            meilleur["elements"].append(
+                resultat
+            )
 
             meilleur["mots"] |= mots
 
@@ -91,72 +88,63 @@ def regrouper_resultats(resultats):
 
 
 def synthetiser_titre(elements):
+    """
+    Génère automatiquement un titre représentatif
+    du groupe d'articles.
+    """
 
     if len(elements) == 1:
         return elements[0]["titre"]
 
-    compte = {}
+    compteur = {}
 
     casse = {}
 
-    ordre = []
+    for article in elements:
 
-    for element in elements:
+        titre = article.get("titre", "")
 
         mots = re.findall(
             r"[A-Za-zÀ-ÿ0-9]+",
-            element["titre"]
+            titre
         )
 
-        vus = set()
+        deja = set()
 
         for mot in mots:
 
-            normalise = mot.lower()
+            m = mot.lower()
 
             if (
-                normalise in MOTS_VIDES
-                or len(normalise) <= 2
+                len(m) <= 2
+                or m in MOTS_VIDES
             ):
                 continue
 
-            if normalise not in vus:
+            if m not in deja:
 
-                compte[normalise] = (
-                    compte.get(normalise, 0)
-                    + 1
-                )
+                compteur[m] = compteur.get(m, 0) + 1
 
-                vus.add(normalise)
+                deja.add(m)
 
-            if normalise not in casse:
+            if m not in casse:
 
-                casse[normalise] = mot
+                casse[m] = mot
 
-                ordre.append(normalise)
+    if not compteur:
+        return "Sujet d'actualité"
 
-    seuil = max(
-        2,
-        (len(elements) + 1) // 2
+    # mots classés par fréquence
+    mots = sorted(
+        compteur,
+        key=lambda x: (
+            compteur[x],
+            len(x)
+        ),
+        reverse=True
     )
 
-    mots = [
-
-        m
-
-        for m in ordre
-
-        if compte.get(m, 0) >= seuil
-
-    ]
-
-    if not mots:
-
-        mots = sorted(
-            ordre,
-            key=lambda x: -compte.get(x, 0)
-        )[:6]
-
+    # on garde les 6 premiers
     mots = mots[:6]
 
     titre = " ".join(
@@ -164,4 +152,4 @@ def synthetiser_titre(elements):
         for m in mots
     )
 
-    return titre or elements[0]["titre"]
+    return titre
