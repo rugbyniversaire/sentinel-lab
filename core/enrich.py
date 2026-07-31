@@ -98,7 +98,7 @@ def enrichir_resultat(resultat):
             url_finale
         )
 
-    except Exception:
-        pass
+    except Exception as e:
+    print("Erreur enrichissement :", e)
 
     return resultat
